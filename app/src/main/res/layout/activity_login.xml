@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/et_login_email"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Email" />
+
+    <EditText
+        android:id="@+id/et_login_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Password"
+        android:inputType="textPassword" />
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Login" />
+
+    <TextView
+        android:id="@+id/tv_forgot_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Forgot Password?"
+        android:gravity="center"
+        android:padding="8dp" />
+
+    <TextView
+        android:id="@+id/tv_Register"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Register"
+        android:gravity="center"
+        android:padding="8dp" />
+
+</LinearLayout>
