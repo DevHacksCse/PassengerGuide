@@ -7,6 +7,7 @@ import android.view.View;
 import androidx.cardview.widget.CardView;
 
 import com.hackstudio.passengerguide.Auth.Login;
+import com.hackstudio.passengerguide.LostAndFound.ReportLostItemActivity;
 import com.hackstudio.passengerguide.PayAndPark.PayAndPark;
 
 
@@ -28,6 +29,15 @@ public class Dashboard extends AppCompatActivity {
             public void onClick(View v) {
                 // Launch another activity when CardView 1 is clicked
                 Intent intent = new Intent(Dashboard.this, Login.class);
+                startActivity(intent);
+            }
+        });
+
+        cardView2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Launch another activity when CardView 1 is clicked
+                Intent intent = new Intent(Dashboard.this, ReportLostItemActivity.class);
                 startActivity(intent);
             }
         });
