@@ -1,6 +1,7 @@
 package com.hackstudio.passengerguide.LostAndFound;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -17,9 +18,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -45,11 +44,9 @@ public class ReportLostItemActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 100;
 
     private EditText stationNameEditText;
-    private Button captureOrSelectButton;
-    private Button selectDateButton;
     private Button uploadDataButton;
     private TextView selectedDateTextView;
-    private ImageView imageView;
+    private ImageView imageView, selectDateImageView, captureOrSelectImageView;
 
     private Calendar selectedDate = Calendar.getInstance();
     private Uri selectedImageUri;
@@ -64,8 +61,8 @@ public class ReportLostItemActivity extends AppCompatActivity {
         setContentView(R.layout.activity_report_lost_item);
 
         stationNameEditText = findViewById(R.id.stationNameEditText);
-        captureOrSelectButton = findViewById(R.id.captureOrSelectButton);
-        selectDateButton = findViewById(R.id.selectDateButton);
+        captureOrSelectImageView = findViewById(R.id.captureOrSelectImageView);
+        selectDateImageView = findViewById(R.id.selectDateImageView);
         uploadDataButton = findViewById(R.id.uploadDataButton);
         selectedDateTextView = findViewById(R.id.selectedDateTextView);
         imageView = findViewById(R.id.imageView);
@@ -74,7 +71,7 @@ public class ReportLostItemActivity extends AppCompatActivity {
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
 
-        captureOrSelectButton.setOnClickListener(new View.OnClickListener() {
+        captureOrSelectImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Choose between capture and select from gallery
@@ -82,7 +79,7 @@ public class ReportLostItemActivity extends AppCompatActivity {
             }
         });
 
-        selectDateButton.setOnClickListener(new View.OnClickListener() {
+        selectDateImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showDatePicker();
@@ -98,112 +95,46 @@ public class ReportLostItemActivity extends AppCompatActivity {
     }
 
     private void showImageSourceDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Choose Image Source")
-                .setItems(new CharSequence[]{"Capture Photo", "Choose from Gallery"},
-                        (dialog, which) -> {
-                            switch (which) {
-                                case 0:
-                                    // Capture photo
-                                    dispatchTakePictureIntent();
-                                    break;
-                                case 1:
-                                    // Choose from gallery
-                                    openGallery();
-                                    break;
-                            }
-                        });
-        builder.show();
+        // Check if the app has camera permission
+        if (checkCameraPermission()) {
+            // If permission is granted, show the dialog
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Choose Image Source")
+                    .setItems(new CharSequence[]{"Capture Photo", "Choose from Gallery"},
+                            (dialog, which) -> {
+                                switch (which) {
+                                    case 0:
+                                        // Capture photo
+                                        dispatchTakePictureIntent();
+                                        break;
+                                    case 1:
+                                        // Choose from gallery
+                                        openGallery();
+                                        break;
+                                }
+                            });
+            builder.show();
+        } else {
+            // If permission is not granted, request it
+            requestCameraPermission();
+        }
     }
-
-
     private boolean checkCameraPermission() {
+        // Check if the app has camera permission
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestCameraPermission() {
+        // Request camera permission
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Camera permission granted, proceed with capturing or selecting image
-                dispatchTakePictureIntent();
-            } else {
-                // Camera permission denied, show a message or handle accordingly
-                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
 
-    private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-        }
-    }
 
     private void openGallery() {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(galleryIntent, REQUEST_IMAGE_PICK);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            // Image captured from camera
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            selectedImageUri = getImageUri(imageBitmap);
-            imageView.setImageBitmap(imageBitmap);
-        } else if (requestCode == REQUEST_IMAGE_PICK && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            // Image selected from gallery
-            selectedImageUri = data.getData();
-            try {
-                Bitmap imageBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
-                imageView.setImageBitmap(imageBitmap);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private Uri getImageUri(Bitmap bitmap) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-        String path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "Title", null);
-        return Uri.parse(path);
-    }
-
-    private void showDatePicker() {
-        DatePickerDialog.OnDateSetListener dateSetListener = new DatePickerDialog.OnDateSetListener() {
-            @Override
-            public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                selectedDate.set(Calendar.YEAR, year);
-                selectedDate.set(Calendar.MONTH, monthOfYear);
-                selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                updateSelectedDateTextView();
-            }
-        };
-
-        new DatePickerDialog(
-                this,
-                dateSetListener,
-                selectedDate.get(Calendar.YEAR),
-                selectedDate.get(Calendar.MONTH),
-                selectedDate.get(Calendar.DAY_OF_MONTH))
-                .show();
-    }
-
-    private void updateSelectedDateTextView() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        String formattedDate = sdf.format(selectedDate.getTime());
-        selectedDateTextView.setText("Selected Date: " + formattedDate);
     }
 
     private void uploadDataToFirestore() {
@@ -240,7 +171,8 @@ public class ReportLostItemActivity extends AppCompatActivity {
                 firestore.collection("lost_items")
                         .add(data)
                         .addOnSuccessListener(documentReference -> {
-                            Toast.makeText(ReportLostItemActivity.this, "Data uploaded successfully", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ReportLostItemActivity.this, "Item Added", Toast.LENGTH_SHORT).show();
+                            finish();
                         })
                         .addOnFailureListener(e -> {
                             Log.e("Firestore", "Error adding document", e);
@@ -248,5 +180,66 @@ public class ReportLostItemActivity extends AppCompatActivity {
                         });
             });
         });
+    }
+
+    private void showDatePicker() {
+        DatePickerDialog.OnDateSetListener dateSetListener = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                selectedDate.set(Calendar.YEAR, year);
+                selectedDate.set(Calendar.MONTH, monthOfYear);
+                selectedDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                updateSelectedDateTextView();
+            }
+        };
+
+        new DatePickerDialog(
+                this,
+                dateSetListener,
+                selectedDate.get(Calendar.YEAR),
+                selectedDate.get(Calendar.MONTH),
+                selectedDate.get(Calendar.DAY_OF_MONTH))
+                .show();
+    }
+
+    private void updateSelectedDateTextView() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String formattedDate = sdf.format(selectedDate.getTime());
+        selectedDateTextView.setText(formattedDate);
+    }
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            // Image captured from camera
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
+            selectedImageUri = getImageUri(imageBitmap);
+            imageView.setImageBitmap(imageBitmap);
+        } else if (requestCode == REQUEST_IMAGE_PICK && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            // Image selected from gallery
+            selectedImageUri = data.getData();
+            try {
+                Bitmap imageBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
+                imageView.setImageBitmap(imageBitmap);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private Uri getImageUri(Bitmap bitmap) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "Title", null);
+        return Uri.parse(path);
     }
 }
