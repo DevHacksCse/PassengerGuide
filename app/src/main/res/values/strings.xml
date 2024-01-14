@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">PassengerGuide</string>
+    <string-array name="vehicle_types_array">
+        <item>Car</item>
+        <item>Bike</item>
+        <item>Truck</item>
+    </string-array>
 </resources>
